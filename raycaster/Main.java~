@@ -1,0 +1,94 @@
+/*
+   Main.java
+ 
+   Created on marts  7, 2010 (Morten Rhiger <mir@ruc.dk>)
+*/
+
+import java.util.ArrayList;
+import java.awt.Color;
+
+
+public class Main {
+  private static double trace(Ray r, Scene scene, Vector3 light, Sphere shape){
+    Hit hit = scene.intersect(r, shape);
+    double shading = 0.0;
+    
+          
+        if (hit == null) {
+
+          // The ray doesn't intersect with an object
+       //   return 0.0; //kan ¾ndre baggrundsfarven
+         
+        } else {
+          // The ray intersects with an object
+
+          // This is where to 
+          //
+          // 1. use the vectors 'light' and 'hit.normal' to compute
+          //    shading, and 
+         shading = hit.normal.multiply(-1).unitize().dot(light);
+          if (shading<0) shading=0;
+
+          // 2. use the vector 'light' and the point 'hit.point' to
+          //    detect shadows.
+          Ray ray2 = new Ray(hit.point, light.multiply(-1));
+          Hit hit2 = scene.intersect(ray2, hit.shape);
+          if (hit2 != null)
+          shading = 0;
+          Vector3 direction = r.direction.subtract(hit.normal.multiply(r.direction.dot(hit.normal)*2));
+          Ray ray3 = new Ray(hit.point, direction);
+          double reflection = trace(ray3,scene, light, hit.shape);
+       //   shading = shading/2 + reflection/2;
+         shading= 1.0 - Math.sqrt((1.0-shading)*(1.0-reflection)) ;
+        }
+    return shading;
+    //hit.spheres.color
+
+  }
+  
+
+  public static void main(String[] args) {
+    int window_width  = 400;
+    int window_height = 400;
+
+
+    double camera_width = 0.15;
+    double camera_height = camera_width * (window_height / (double) window_width);
+ 
+    // Setup scene
+    
+    Scene scene = new Scene();
+    scene.add(new Sphere(new Point3(0,   0, 0),    1));
+    scene.add(new Sphere(new Point3(1,   0, 1),    0.4));
+    scene.add(new Sphere(new Point3(0.4, 1, -0.6), 0.2));
+ //   scene.add(new Sphere(new Point3(0.8, 0.2, -0.9), 0.2));
+   
+    //Light
+    Vector3 light = new Vector3(-1, -1, 0).unitize();
+
+    // Setup display
+
+    Display display = new Display(window_width, window_height);
+    Camera camera = new Camera(new Point3(1.5, -1, -4), camera_width, camera_height); //Camera
+    camera.setWindowDimensions(window_width, window_height);
+
+    // Render
+
+    for (int y = 0; y < window_height; y++) {
+      for (int x = 0; x < window_width; x++) {
+       Ray ray = camera.getRay(x, y);
+       double intensity = trace(ray, scene, light, null);
+   //   display.plot(x,y,10);
+          
+    
+ //Farver lyset
+ display.plot(x, y, new Color((float)intensity,(float)intensity, (float)intensity));; 
+// For now, draw only silhouette
+        //        
+      }
+      display.refresh();
+    }
+    if (args.length == 1)
+      display.save(args[0]);
+  }
+}
